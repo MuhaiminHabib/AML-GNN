@@ -4,7 +4,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-EXPLAINERS = ["gnnexplainer", "pgexplainer"]
+EXPLAINERS = ["gnnexplainer", "pgexplainer", "subgraphx"]
 
 INPUT_DIR = PROJECT_ROOT / "outputs" / "faithfulness" / "summary"
 OUTPUT_PATH = INPUT_DIR / "combined_explainer_faithfulness_summary.csv"
