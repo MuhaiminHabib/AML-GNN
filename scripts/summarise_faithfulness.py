@@ -1,10 +1,9 @@
+import argparse
 import csv
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-EXPLAINER_NAME = "gnnexplainer"
 
 EXPERIMENTS = [
     "graphsage_raw_undirected",
@@ -25,14 +24,14 @@ def mean(values):
     return sum(values) / len(values) if values else 0.0
 
 
-def summarise_experiment(experiment_name):
+def summarise_experiment(explainer_name, experiment_name, seed):
     input_path = (
         PROJECT_ROOT
         / "outputs"
         / "faithfulness"
-        / EXPLAINER_NAME
+        / explainer_name
         / experiment_name
-        / f"seed_{SEED}_faithfulness.csv"
+        / f"seed_{seed}_faithfulness.csv"
     )
 
     if not input_path.exists():
@@ -41,9 +40,9 @@ def summarise_experiment(experiment_name):
     rows = read_csv(input_path)
 
     summary = {
-        "explainer": EXPLAINER_NAME,
+        "explainer": explainer_name,
         "experiment_name": experiment_name,
-        "seed": SEED,
+        "seed": seed,
         "num_nodes": len(rows),
         "mean_original_prob": mean(row["original_prob"] for row in rows),
         "mean_deletion_prob": mean(row["deletion_prob"] for row in rows),
@@ -65,17 +64,32 @@ def summarise_experiment(experiment_name):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--explainer",
+        type=str,
+        required=True,
+        choices=["gnnexplainer", "pgexplainer", "subgraphx"],
+    )
+    parser.add_argument("--seed", type=int, default=42)
+
+    args = parser.parse_args()
+
     summaries = []
 
     for experiment_name in EXPERIMENTS:
-        print(f"Summarising: {experiment_name}")
-        summary = summarise_experiment(experiment_name)
+        print(f"Summarising: {args.explainer} | {experiment_name}")
+        summary = summarise_experiment(
+            explainer_name=args.explainer,
+            experiment_name=experiment_name,
+            seed=args.seed,
+        )
         summaries.append(summary)
 
     output_dir = PROJECT_ROOT / "outputs" / "faithfulness" / "summary"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_path = output_dir / f"{EXPLAINER_NAME}_faithfulness_summary.csv"
+    output_path = output_dir / f"{args.explainer}_faithfulness_summary.csv"
 
     fieldnames = list(summaries[0].keys())
 
@@ -87,6 +101,7 @@ def main():
     print("\nFaithfulness summary:")
     for row in summaries:
         print(
+            f"{row['explainer']} | "
             f"{row['experiment_name']} | "
             f"nodes={row['num_nodes']} | "
             f"deletion_drop={row['mean_deletion_drop']:.4f} | "

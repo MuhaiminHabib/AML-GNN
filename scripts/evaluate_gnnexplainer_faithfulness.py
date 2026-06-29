@@ -193,10 +193,7 @@ def evaluate_one_explanation(
     deletion_drop = original_prob - deletion_prob
     insertion_gap = original_prob - insertion_prob
 
-    sufficiency_ratio = (
-        insertion_prob / original_prob if original_prob > 0 else 0.0
-    )
-
+    sufficiency_ratio = insertion_prob / original_prob if original_prob > 0 else 0.0
     sparsity = selected_edges / total_edges if total_edges > 0 else 0.0
 
     deletion_label_flip = int(original_pred != deletion_pred)
@@ -224,6 +221,7 @@ def evaluate_one_explanation(
 
 def main():
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
         "--experiment",
         type=str,
@@ -232,11 +230,18 @@ def main():
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_hops", type=int, default=2)
+    parser.add_argument(
+        "--explainer",
+        type=str,
+        default="gnnexplainer",
+        choices=["gnnexplainer", "pgexplainer", "subgraphx"],
+    )
 
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
+    print("Explainer:", args.explainer)
 
     exp = FINAL_EXPERIMENTS[args.experiment]
 
@@ -281,7 +286,7 @@ def main():
         PROJECT_ROOT
         / "outputs"
         / "explanations"
-        / "gnnexplainer"
+        / args.explainer
         / args.experiment
         / f"seed_{args.seed}_explanations.json"
     )
@@ -293,6 +298,9 @@ def main():
         explanation_data = json.load(f)
 
     explanations = explanation_data["explanations"]
+
+    if len(explanations) == 0:
+        raise RuntimeError(f"No explanations found in: {explanation_path}")
 
     rows = []
 
@@ -322,7 +330,7 @@ def main():
         PROJECT_ROOT
         / "outputs"
         / "faithfulness"
-        / "gnnexplainer"
+        / args.explainer
         / args.experiment
     )
     output_dir.mkdir(parents=True, exist_ok=True)
