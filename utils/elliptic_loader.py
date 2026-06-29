@@ -6,7 +6,26 @@ import torch
 from torch_geometric.data import Data
 
 
-def load_elliptic(data_dir: str | Path) -> Data:
+def normalize_features_by_train_time(
+    x: torch.Tensor,
+    time_step: torch.Tensor,
+    train_end_time: int = 34,
+) -> torch.Tensor:
+    """
+    Normalize node features using only train-time nodes.
+    This avoids leaking validation/test-period feature statistics.
+    """
+    train_time_mask = time_step <= train_end_time
+
+    mean = x[train_time_mask].mean(dim=0, keepdim=True)
+    std = x[train_time_mask].std(dim=0, keepdim=True)
+
+    std = torch.where(std == 0, torch.ones_like(std), std)
+
+    return (x - mean) / std
+
+
+def load_elliptic(data_dir: str | Path, normalize: bool = True) -> Data:
     data_dir = Path(data_dir)
 
     features_path = data_dir / "elliptic_txs_features.csv"
@@ -22,6 +41,13 @@ def load_elliptic(data_dir: str | Path) -> Data:
 
     time_step = torch.tensor(features.iloc[:, 1].to_numpy(), dtype=torch.long)
     x = torch.tensor(features.iloc[:, 2:].to_numpy(), dtype=torch.float)
+
+    if normalize:
+        x = normalize_features_by_train_time(
+            x=x,
+            time_step=time_step,
+            train_end_time=34,
+        )
 
     y = torch.full((len(tx_ids),), -1, dtype=torch.long)
 
@@ -75,6 +101,10 @@ def print_elliptic_summary(data: Data) -> None:
 
     print("Minimum time step:", int(data.time_step.min()))
     print("Maximum time step:", int(data.time_step.max()))
+
+    print("\nFeature check after normalization:")
+    print("Feature mean approx:", float(data.x.mean()))
+    print("Feature std approx:", float(data.x.std()))
 
     print("\nLabelled nodes:", int((data.y != -1).sum()))
     print("Unknown nodes:", int((data.y == -1).sum()))

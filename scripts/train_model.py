@@ -28,6 +28,8 @@ def parse_args():
     parser.add_argument("--no_threshold_tuning",action="store_true",help="Disable validation-based threshold tuning and use threshold=0.5.")
     parser.add_argument("--heads", type=int, default=4)
     parser.add_argument("--class_weight_strength", type=float, default=1.0)
+    parser.add_argument("--no_normalize", action="store_true", help="Disable train-time feature normalization.",
+    )
     return parser.parse_args()
 
 
@@ -52,7 +54,11 @@ def main():
     print("Using device:", device)
 
     data_root = PROJECT_ROOT / "data"
-    data, summary_fn = load_dataset(args.dataset, data_root)
+    data, summary_fn = load_dataset(
+        args.dataset,
+        data_root,
+        normalize=not args.no_normalize,
+    )
     summary_fn(data)
 
     model = build_model(
@@ -82,6 +88,12 @@ def main():
     )
 
     print("\nFinal Test Metrics")
+    print(f"dataset: {args.dataset}")
+    print(f"model: {args.model}")
+    print(f"seed: {args.seed}")
+    print(f"normalize: {not args.no_normalize}")
+    print(f"threshold_tuning: {not args.no_threshold_tuning}")
+
     for key, value in result["test_metrics"].items():
         print(f"{key}: {value:.4f}")
 
@@ -94,6 +106,21 @@ def main():
         / f"seed_{args.seed}.json"
     )
     result_path.parent.mkdir(parents=True, exist_ok=True)
+
+    result["dataset"] = args.dataset
+    result["model"] = args.model
+    result["seed"] = args.seed
+    result["normalize"] = not args.no_normalize
+    result["threshold_tuning"] = not args.no_threshold_tuning
+    result["hyperparameters"] = {
+        "epochs": args.epochs,
+        "lr": args.lr,
+        "weight_decay": args.weight_decay,
+        "hidden_channels": args.hidden_channels,
+        "dropout": args.dropout,
+        "heads": args.heads,
+        "class_weight_strength": args.class_weight_strength,
+    }
 
     with open(result_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=4)

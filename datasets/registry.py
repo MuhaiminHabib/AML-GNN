@@ -3,11 +3,14 @@ from pathlib import Path
 from utils.elliptic_loader import load_elliptic, print_elliptic_summary
 
 
-def load_dataset(dataset_name: str, data_root: str | Path):
+def load_dataset(dataset_name: str, data_root: str | Path, normalize: bool = True):
     data_root = Path(data_root)
 
     if dataset_name.lower() == "elliptic":
-        data = load_elliptic(data_root / "elliptic")
+        data = load_elliptic(
+            data_root / "elliptic",
+            normalize=normalize,
+        )
         return data, print_elliptic_summary
 
     if dataset_name.lower() == "amlsim":
