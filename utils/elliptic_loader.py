@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch_geometric.data import Data
+from torch_geometric.utils import to_undirected
 
 
 def normalize_features_by_train_time(
@@ -25,7 +26,11 @@ def normalize_features_by_train_time(
     return (x - mean) / std
 
 
-def load_elliptic(data_dir: str | Path, normalize: bool = True) -> Data:
+def load_elliptic(
+    data_dir: str | Path,
+    normalize: bool = True,
+    make_undirected: bool = False,
+) -> Data:
     data_dir = Path(data_dir)
 
     features_path = data_dir / "elliptic_txs_features.csv"
@@ -77,6 +82,8 @@ def load_elliptic(data_dir: str | Path, normalize: bool = True) -> Data:
     dst = dst[valid_edges].astype(np.int64).to_numpy()
 
     edge_index = torch.from_numpy(np.vstack([src, dst])).long()
+    if make_undirected:
+        edge_index = to_undirected(edge_index)
 
     data = Data(
         x=x,
@@ -102,7 +109,7 @@ def print_elliptic_summary(data: Data) -> None:
     print("Minimum time step:", int(data.time_step.min()))
     print("Maximum time step:", int(data.time_step.max()))
 
-    print("\nFeature check after normalization:")
+    print("\nFeature statistics:")
     print("Feature mean approx:", float(data.x.mean()))
     print("Feature std approx:", float(data.x.std()))
 

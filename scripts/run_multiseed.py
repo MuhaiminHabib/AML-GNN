@@ -20,6 +20,7 @@ EXPERIMENTS = [
         "model": "gcn",
         "dataset": "elliptic",
         "normalize": False,
+        "undirected": False,
         "epochs": 100,
         "lr": 0.005,
         "weight_decay": 5e-4,
@@ -34,6 +35,7 @@ EXPERIMENTS = [
         "model": "gcn",
         "dataset": "elliptic",
         "normalize": True,
+        "undirected": False,
         "epochs": 100,
         "lr": 0.005,
         "weight_decay": 5e-4,
@@ -48,6 +50,7 @@ EXPERIMENTS = [
         "model": "graphsage",
         "dataset": "elliptic",
         "normalize": False,
+        "undirected": False,
         "epochs": 100,
         "lr": 0.005,
         "weight_decay": 5e-4,
@@ -62,8 +65,69 @@ EXPERIMENTS = [
         "model": "gatv2",
         "dataset": "elliptic",
         "normalize": False,
+        "undirected": False,
         "epochs": 200,
         "lr": 0.001,
+        "weight_decay": 5e-4,
+        "hidden_channels": 64,
+        "dropout": 0.2,
+        "heads": 2,
+        "class_weight_strength": 0.25,
+        "threshold_tuning": False,
+    },
+    {
+        "experiment_name": "gatv2_res_raw",
+        "model": "gatv2_res",
+        "dataset": "elliptic",
+        "normalize": False,
+        "undirected": False,
+        "epochs": 250,
+        "lr": 0.0005,
+        "weight_decay": 5e-4,
+        "hidden_channels": 64,
+        "dropout": 0.2,
+        "heads": 2,
+        "class_weight_strength": 0.25,
+        "threshold_tuning": False,
+    },
+    {
+        "experiment_name": "gcn_norm_undirected",
+        "model": "gcn",
+        "dataset": "elliptic",
+        "normalize": True,
+        "undirected": True,
+        "epochs": 100,
+        "lr": 0.005,
+        "weight_decay": 5e-4,
+        "hidden_channels": 128,
+        "dropout": 0.5,
+        "heads": 4,
+        "class_weight_strength": 1.0,
+        "threshold_tuning": False,
+    },
+    {
+        "experiment_name": "graphsage_raw_undirected",
+        "model": "graphsage",
+        "dataset": "elliptic",
+        "normalize": False,
+        "undirected": True,
+        "epochs": 100,
+        "lr": 0.005,
+        "weight_decay": 5e-4,
+        "hidden_channels": 128,
+        "dropout": 0.5,
+        "heads": 4,
+        "class_weight_strength": 1.0,
+        "threshold_tuning": False,
+    },
+    {
+        "experiment_name": "gatv2_res_raw_undirected",
+        "model": "gatv2_res",
+        "dataset": "elliptic",
+        "normalize": False,
+        "undirected": True,
+        "epochs": 250,
+        "lr": 0.0005,
         "weight_decay": 5e-4,
         "hidden_channels": 64,
         "dropout": 0.2,
@@ -90,6 +154,7 @@ def main():
         print(f"Experiment: {experiment_name}")
         print(f"Dataset: {dataset_name} | Model: {model_name}")
         print(f"Normalize: {experiment['normalize']}")
+        print(f"Undirected: {experiment['undirected']}")
         print("=" * 80)
 
         for seed in SEEDS:
@@ -103,6 +168,7 @@ def main():
                 dataset_name,
                 data_root,
                 normalize=experiment["normalize"],
+                make_undirected=experiment["undirected"],
             )
 
             model = build_model(
@@ -151,6 +217,7 @@ def main():
                 "model": model_name,
                 "seed": seed,
                 "normalize": experiment["normalize"],
+                "undirected": experiment["undirected"],
                 "best_epoch": result["best_epoch"],
                 "best_val_f1": result["best_val_f1"],
                 "threshold": metrics["threshold"],
@@ -176,6 +243,7 @@ def main():
             print(f"experiment_name: {experiment_name}")
             print(f"model: {model_name}")
             print(f"normalize: {experiment['normalize']}")
+            print(f"undirected: {experiment['undirected']}")
 
             for key in [
                 "accuracy",

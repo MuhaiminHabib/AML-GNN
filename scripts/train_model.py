@@ -28,8 +28,8 @@ def parse_args():
     parser.add_argument("--no_threshold_tuning",action="store_true",help="Disable validation-based threshold tuning and use threshold=0.5.")
     parser.add_argument("--heads", type=int, default=4)
     parser.add_argument("--class_weight_strength", type=float, default=1.0)
-    parser.add_argument("--no_normalize", action="store_true", help="Disable train-time feature normalization.",
-    )
+    parser.add_argument("--no_normalize", action="store_true", help="Disable train-time feature normalization.")
+    parser.add_argument("--undirected", action="store_true", help="Convert the graph to bidirectional/undirected message passing.")
     return parser.parse_args()
 
 
@@ -58,6 +58,7 @@ def main():
         args.dataset,
         data_root,
         normalize=not args.no_normalize,
+        make_undirected=args.undirected,
     )
     summary_fn(data)
 
@@ -93,6 +94,7 @@ def main():
     print(f"seed: {args.seed}")
     print(f"normalize: {not args.no_normalize}")
     print(f"threshold_tuning: {not args.no_threshold_tuning}")
+    print(f"undirected: {args.undirected}")
 
     for key, value in result["test_metrics"].items():
         print(f"{key}: {value:.4f}")
@@ -112,6 +114,7 @@ def main():
     result["seed"] = args.seed
     result["normalize"] = not args.no_normalize
     result["threshold_tuning"] = not args.no_threshold_tuning
+    result["undirected"] = args.undirected
     result["hyperparameters"] = {
         "epochs": args.epochs,
         "lr": args.lr,

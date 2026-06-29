@@ -11,6 +11,14 @@ def mean_std(series):
     return f"{series.mean():.4f} ± {series.std():.4f}"
 
 
+def extract_mean(value):
+    """
+    Extract the mean value from a string like '0.5969 ± 0.0160'
+    so the summary can be sorted numerically.
+    """
+    return value.str.extract(r"([0-9.]+)").astype(float)[0]
+
+
 def main():
     results_path = (
         PROJECT_ROOT
@@ -24,10 +32,16 @@ def main():
 
     summary_rows = []
 
-    group_cols = ["experiment_name", "dataset", "model", "normalize"]
+    group_cols = [
+        "experiment_name",
+        "dataset",
+        "model",
+        "normalize",
+        "undirected",
+    ]
 
     for keys, group in df.groupby(group_cols):
-        experiment_name, dataset, model, normalize = keys
+        experiment_name, dataset, model, normalize, undirected = keys
 
         summary_rows.append(
             {
@@ -35,6 +49,7 @@ def main():
                 "dataset": dataset,
                 "model": model,
                 "normalize": normalize,
+                "undirected": undirected,
                 "accuracy": mean_std(group["accuracy"]),
                 "illicit_precision": mean_std(group["illicit_precision"]),
                 "illicit_recall": mean_std(group["illicit_recall"]),
@@ -49,7 +64,7 @@ def main():
     summary_df = summary_df.sort_values(
         by="illicit_f1",
         ascending=False,
-        key=lambda col: col.str.extract(r"([0-9.]+)").astype(float)[0],
+        key=extract_mean,
     )
 
     output_path = (
