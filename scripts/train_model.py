@@ -1,0 +1,99 @@
+import argparse
+import json
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.append(str(PROJECT_ROOT))
+
+import torch
+
+from datasets.registry import load_dataset
+from models.registry import build_model
+from training.trainer import TrainConfig, set_seed, train_model
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--dataset", type=str, default="elliptic")
+    parser.add_argument("--model", type=str, required=True)
+
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--lr", type=float, default=0.005)
+    parser.add_argument("--weight_decay", type=float, default=5e-4)
+    parser.add_argument("--hidden_channels", type=int, default=128)
+    parser.add_argument("--dropout", type=float, default=0.5)
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    config = TrainConfig(
+        seed=args.seed,
+        epochs=args.epochs,
+        lr=args.lr,
+        weight_decay=args.weight_decay,
+        hidden_channels=args.hidden_channels,
+        dropout=args.dropout,
+    )
+
+    set_seed(config.seed)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
+
+    data_root = PROJECT_ROOT / "data"
+    data, summary_fn = load_dataset(args.dataset, data_root)
+    summary_fn(data)
+
+    model = build_model(
+        model_name=args.model,
+        in_channels=data.num_node_features,
+        hidden_channels=config.hidden_channels,
+        out_channels=2,
+        dropout=config.dropout,
+    )
+
+    checkpoint_path = (
+        PROJECT_ROOT
+        / "outputs"
+        / "checkpoints"
+        / args.dataset
+        / args.model
+        / f"seed_{args.seed}.pt"
+    )
+
+    result = train_model(
+        model=model,
+        data=data,
+        config=config,
+        device=device,
+        checkpoint_path=checkpoint_path,
+    )
+
+    print("\nFinal Test Metrics")
+    for key, value in result["test_metrics"].items():
+        print(f"{key}: {value:.4f}")
+
+    result_path = (
+        PROJECT_ROOT
+        / "outputs"
+        / "results"
+        / args.dataset
+        / args.model
+        / f"seed_{args.seed}.json"
+    )
+    result_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(result_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=4)
+
+    print(f"\nSaved result to: {result_path}")
+
+
+if __name__ == "__main__":
+    main()
