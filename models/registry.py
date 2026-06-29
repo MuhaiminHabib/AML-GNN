@@ -9,6 +9,7 @@ def build_model(
     hidden_channels: int,
     out_channels: int,
     dropout: float,
+    heads: int = 4,
 ):
     model_name = model_name.lower()
 
@@ -33,7 +34,7 @@ def build_model(
             in_channels=in_channels,
             hidden_channels=hidden_channels,
             out_channels=out_channels,
-            heads=4,
+            heads=heads,
             dropout=dropout,
         )
 

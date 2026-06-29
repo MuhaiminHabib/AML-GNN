@@ -25,11 +25,9 @@ def parse_args():
     parser.add_argument("--weight_decay", type=float, default=5e-4)
     parser.add_argument("--hidden_channels", type=int, default=128)
     parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument(
-        "--no_threshold_tuning",
-        action="store_true",
-        help="Disable validation-based threshold tuning and use threshold=0.5.",
-    )
+    parser.add_argument("--no_threshold_tuning",action="store_true",help="Disable validation-based threshold tuning and use threshold=0.5.")
+    parser.add_argument("--heads", type=int, default=4)
+    parser.add_argument("--class_weight_strength", type=float, default=1.0)
     return parser.parse_args()
 
 
@@ -44,6 +42,8 @@ def main():
         hidden_channels=args.hidden_channels,
         dropout=args.dropout,
         threshold_tuning=not args.no_threshold_tuning,
+        heads=args.heads,
+        class_weight_strength=args.class_weight_strength,
     )
 
     set_seed(config.seed)
@@ -61,6 +61,7 @@ def main():
         hidden_channels=config.hidden_channels,
         out_channels=2,
         dropout=config.dropout,
+        heads=config.heads,
     )
 
     checkpoint_path = (

@@ -24,6 +24,8 @@ class TrainConfig:
     hidden_channels: int = 128
     dropout: float = 0.5
     threshold_tuning: bool = True
+    heads: int = 4
+    class_weight_strength: float = 1.0
 
 
 def set_seed(seed: int) -> None:
@@ -52,7 +54,9 @@ def train_model(
     data = data.to(device)
 
     train_labels = data.y[data.train_mask]
-    class_weights = compute_class_weights(train_labels).to(device)
+    base_class_weights = compute_class_weights(train_labels).to(device)
+    ones = torch.ones_like(base_class_weights)
+    class_weights = ones + config.class_weight_strength * (base_class_weights - ones)
 
     print("Class weights:", class_weights.detach().cpu().numpy())
 
