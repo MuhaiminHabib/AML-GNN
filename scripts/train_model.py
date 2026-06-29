@@ -65,10 +65,10 @@ def main():
     model = build_model(
         model_name=args.model,
         in_channels=data.num_node_features,
-        hidden_channels=config.hidden_channels,
+        hidden_channels=args.hidden_channels,
         out_channels=2,
-        dropout=config.dropout,
-        heads=config.heads,
+        dropout=args.dropout,
+        heads=args.heads,
     )
 
     checkpoint_path = (

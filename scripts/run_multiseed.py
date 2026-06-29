@@ -135,6 +135,21 @@ EXPERIMENTS = [
         "class_weight_strength": 0.25,
         "threshold_tuning": False,
     },
+    {
+        "experiment_name": "gatv2_res_raw_undirected_cw05",
+        "model": "gatv2_res",
+        "dataset": "elliptic",
+        "normalize": False,
+        "undirected": True,
+        "epochs": 250,
+        "lr": 0.0005,
+        "weight_decay": 5e-4,
+        "hidden_channels": 64,
+        "dropout": 0.2,
+        "heads": 2,
+        "class_weight_strength": 0.5,
+        "threshold_tuning": False,
+    },
 ]
 
 

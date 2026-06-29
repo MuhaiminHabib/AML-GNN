@@ -4,6 +4,7 @@ from models.gatv2 import GATv2
 from models.gatv2_res import ResidualGATv2
 
 
+
 def build_model(
     model_name: str,
     in_channels: int,
