@@ -1,5 +1,6 @@
 from models.gcn import GCN
 from models.graphsage import GraphSAGE
+from models.gatv2 import GATv2
 
 
 def build_model(
@@ -28,8 +29,12 @@ def build_model(
         )
 
     if model_name == "gatv2":
-        raise NotImplementedError(
-            "GATv2 model is not implemented yet. It will be added next."
+        return GATv2(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            heads=4,
+            dropout=dropout,
         )
 
     raise ValueError(f"Unknown model: {model_name}")
