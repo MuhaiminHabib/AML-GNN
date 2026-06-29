@@ -24,11 +24,17 @@ def main():
 
     summary_rows = []
 
-    for (dataset, model), group in df.groupby(["dataset", "model"]):
+    group_cols = ["experiment_name", "dataset", "model", "normalize"]
+
+    for keys, group in df.groupby(group_cols):
+        experiment_name, dataset, model, normalize = keys
+
         summary_rows.append(
             {
+                "experiment_name": experiment_name,
                 "dataset": dataset,
                 "model": model,
+                "normalize": normalize,
                 "accuracy": mean_std(group["accuracy"]),
                 "illicit_precision": mean_std(group["illicit_precision"]),
                 "illicit_recall": mean_std(group["illicit_recall"]),
@@ -39,6 +45,12 @@ def main():
         )
 
     summary_df = pd.DataFrame(summary_rows)
+
+    summary_df = summary_df.sort_values(
+        by="illicit_f1",
+        ascending=False,
+        key=lambda col: col.str.extract(r"([0-9.]+)").astype(float)[0],
+    )
 
     output_path = (
         PROJECT_ROOT

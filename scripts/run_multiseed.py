@@ -16,8 +16,10 @@ SEEDS = [42, 7, 21, 123, 2025]
 
 EXPERIMENTS = [
     {
+        "experiment_name": "gcn_raw",
         "model": "gcn",
         "dataset": "elliptic",
+        "normalize": False,
         "epochs": 100,
         "lr": 0.005,
         "weight_decay": 5e-4,
@@ -28,8 +30,24 @@ EXPERIMENTS = [
         "threshold_tuning": False,
     },
     {
+        "experiment_name": "gcn_norm",
+        "model": "gcn",
+        "dataset": "elliptic",
+        "normalize": True,
+        "epochs": 100,
+        "lr": 0.005,
+        "weight_decay": 5e-4,
+        "hidden_channels": 128,
+        "dropout": 0.5,
+        "heads": 4,
+        "class_weight_strength": 1.0,
+        "threshold_tuning": False,
+    },
+    {
+        "experiment_name": "graphsage_raw",
         "model": "graphsage",
         "dataset": "elliptic",
+        "normalize": False,
         "epochs": 100,
         "lr": 0.005,
         "weight_decay": 5e-4,
@@ -40,8 +58,10 @@ EXPERIMENTS = [
         "threshold_tuning": False,
     },
     {
+        "experiment_name": "gatv2_raw_tuned",
         "model": "gatv2",
         "dataset": "elliptic",
+        "normalize": False,
         "epochs": 200,
         "lr": 0.001,
         "weight_decay": 5e-4,
@@ -59,15 +79,17 @@ def main():
     print("Using device:", device)
 
     all_rows = []
-
     data_root = PROJECT_ROOT / "data"
 
     for experiment in EXPERIMENTS:
+        experiment_name = experiment["experiment_name"]
         dataset_name = experiment["dataset"]
         model_name = experiment["model"]
 
         print("\n" + "=" * 80)
-        print(f"Experiment: {dataset_name} | {model_name}")
+        print(f"Experiment: {experiment_name}")
+        print(f"Dataset: {dataset_name} | Model: {model_name}")
+        print(f"Normalize: {experiment['normalize']}")
         print("=" * 80)
 
         for seed in SEEDS:
@@ -77,7 +99,11 @@ def main():
 
             set_seed(seed)
 
-            data, summary_fn = load_dataset(dataset_name, data_root)
+            data, summary_fn = load_dataset(
+                dataset_name,
+                data_root,
+                normalize=experiment["normalize"],
+            )
 
             model = build_model(
                 model_name=model_name,
@@ -105,7 +131,7 @@ def main():
                 / "outputs"
                 / "checkpoints"
                 / dataset_name
-                / model_name
+                / experiment_name
                 / f"seed_{seed}.pt"
             )
 
@@ -120,9 +146,11 @@ def main():
             metrics = result["test_metrics"]
 
             row = {
+                "experiment_name": experiment_name,
                 "dataset": dataset_name,
                 "model": model_name,
                 "seed": seed,
+                "normalize": experiment["normalize"],
                 "best_epoch": result["best_epoch"],
                 "best_val_f1": result["best_val_f1"],
                 "threshold": metrics["threshold"],
@@ -134,6 +162,7 @@ def main():
                 "pr_auc": metrics["pr_auc"],
                 "epochs": experiment["epochs"],
                 "lr": experiment["lr"],
+                "weight_decay": experiment["weight_decay"],
                 "hidden_channels": experiment["hidden_channels"],
                 "dropout": experiment["dropout"],
                 "heads": experiment["heads"],
@@ -144,6 +173,10 @@ def main():
             all_rows.append(row)
 
             print("\nSeed result:")
+            print(f"experiment_name: {experiment_name}")
+            print(f"model: {model_name}")
+            print(f"normalize: {experiment['normalize']}")
+
             for key in [
                 "accuracy",
                 "illicit_precision",
