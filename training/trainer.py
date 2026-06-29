@@ -7,7 +7,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from utils.metrics import evaluate
+from utils.metrics import (
+    evaluate,
+    get_probs_labels,
+    find_best_threshold,
+    compute_metrics_from_probs,
+)
 
 
 @dataclass
@@ -18,6 +23,7 @@ class TrainConfig:
     weight_decay: float = 5e-4
     hidden_channels: int = 128
     dropout: float = 0.5
+    threshold_tuning: bool = True
 
 
 def set_seed(seed: int) -> None:
@@ -59,6 +65,8 @@ def train_model(
     best_val_f1 = -1.0
     best_state = None
     best_epoch = -1
+    best_threshold = 0.5
+    best_val_metrics = None
 
     for epoch in range(1, config.epochs + 1):
         model.train()
@@ -76,42 +84,82 @@ def train_model(
         optimizer.step()
 
         if epoch == 1 or epoch % 5 == 0:
-            val_metrics = evaluate(model, data, data.val_mask, device)
+            if config.threshold_tuning:
+                val_probs, val_labels = get_probs_labels(
+                    model,
+                    data,
+                    data.val_mask,
+                    device,
+                )
+                threshold, val_metrics = find_best_threshold(
+                    val_probs,
+                    val_labels,
+                    metric="f1",
+                )
+            else:
+                threshold = 0.5
+                val_metrics = evaluate(
+                    model,
+                    data,
+                    data.val_mask,
+                    device,
+                    threshold=threshold,
+                )
 
             print(
                 f"Epoch {epoch:03d} | "
                 f"Loss: {loss.item():.4f} | "
                 f"Val illicit F1: {val_metrics['illicit_f1']:.4f} | "
-                f"Val PR-AUC: {val_metrics['pr_auc']:.4f}"
+                f"Val PR-AUC: {val_metrics['pr_auc']:.4f} | "
+                f"Threshold: {threshold:.3f}"
             )
 
             if val_metrics["illicit_f1"] > best_val_f1:
                 best_val_f1 = val_metrics["illicit_f1"]
                 best_state = copy.deepcopy(model.state_dict())
                 best_epoch = epoch
+                best_threshold = threshold
+                best_val_metrics = val_metrics
 
     if best_state is None:
         raise RuntimeError("No best model state was saved.")
 
     model.load_state_dict(best_state)
 
+    test_probs, test_labels = get_probs_labels(
+        model,
+        data,
+        data.test_mask,
+        device,
+    )
+
+    test_metrics = compute_metrics_from_probs(
+        test_probs,
+        test_labels,
+        threshold=best_threshold,
+    )
+
     if checkpoint_path is not None:
         checkpoint_path = Path(checkpoint_path)
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+
         torch.save(
             {
                 "model_state_dict": best_state,
                 "best_epoch": best_epoch,
                 "best_val_f1": best_val_f1,
+                "best_threshold": best_threshold,
+                "best_val_metrics": best_val_metrics,
+                "test_metrics": test_metrics,
                 "config": config.__dict__,
             },
             checkpoint_path,
         )
 
-    test_metrics = evaluate(model, data, data.test_mask, device)
-
     return {
-        "best_epoch": best_epoch,
-        "best_val_f1": best_val_f1,
+        "best_epoch": int(best_epoch),
+        "best_val_f1": float(best_val_f1),
+        "best_threshold": float(best_threshold),
+        "best_val_metrics": best_val_metrics,
         "test_metrics": test_metrics,
     }
