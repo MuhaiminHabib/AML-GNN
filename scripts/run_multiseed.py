@@ -14,43 +14,15 @@ from training.trainer import TrainConfig, set_seed, train_model
 
 SEEDS = [42, 7, 21, 123, 2025]
 
+
 EXPERIMENTS = [
     {
-        "experiment_name": "gcn_raw",
-        "model": "gcn",
-        "dataset": "elliptic",
-        "normalize": False,
-        "undirected": False,
-        "epochs": 100,
-        "lr": 0.005,
-        "weight_decay": 5e-4,
-        "hidden_channels": 128,
-        "dropout": 0.5,
-        "heads": 4,
-        "class_weight_strength": 1.0,
-        "threshold_tuning": False,
-    },
-    {
-        "experiment_name": "gcn_norm",
-        "model": "gcn",
-        "dataset": "elliptic",
-        "normalize": True,
-        "undirected": False,
-        "epochs": 100,
-        "lr": 0.005,
-        "weight_decay": 5e-4,
-        "hidden_channels": 128,
-        "dropout": 0.5,
-        "heads": 4,
-        "class_weight_strength": 1.0,
-        "threshold_tuning": False,
-    },
-    {
-        "experiment_name": "graphsage_raw",
+        "experiment_name": "graphsage_raw_undirected",
         "model": "graphsage",
         "dataset": "elliptic",
         "normalize": False,
-        "undirected": False,
+        "undirected": True,
+        "direction_aware": False,
         "epochs": 100,
         "lr": 0.005,
         "weight_decay": 5e-4,
@@ -61,33 +33,19 @@ EXPERIMENTS = [
         "threshold_tuning": False,
     },
     {
-        "experiment_name": "gatv2_raw_tuned",
-        "model": "gatv2",
+        "experiment_name": "gatv2_dir_heads8_hidden32_cw035",
+        "model": "gatv2_dir",
         "dataset": "elliptic",
         "normalize": False,
         "undirected": False,
-        "epochs": 200,
-        "lr": 0.001,
-        "weight_decay": 5e-4,
-        "hidden_channels": 64,
-        "dropout": 0.2,
-        "heads": 2,
-        "class_weight_strength": 0.25,
-        "threshold_tuning": False,
-    },
-    {
-        "experiment_name": "gatv2_res_raw",
-        "model": "gatv2_res",
-        "dataset": "elliptic",
-        "normalize": False,
-        "undirected": False,
+        "direction_aware": True,
         "epochs": 250,
         "lr": 0.0005,
         "weight_decay": 5e-4,
-        "hidden_channels": 64,
+        "hidden_channels": 32,
         "dropout": 0.2,
-        "heads": 2,
-        "class_weight_strength": 0.25,
+        "heads": 8,
+        "class_weight_strength": 0.35,
         "threshold_tuning": False,
     },
     {
@@ -96,6 +54,7 @@ EXPERIMENTS = [
         "dataset": "elliptic",
         "normalize": True,
         "undirected": True,
+        "direction_aware": False,
         "epochs": 100,
         "lr": 0.005,
         "weight_decay": 5e-4,
@@ -103,54 +62,27 @@ EXPERIMENTS = [
         "dropout": 0.5,
         "heads": 4,
         "class_weight_strength": 1.0,
-        "threshold_tuning": False,
-    },
-    {
-        "experiment_name": "graphsage_raw_undirected",
-        "model": "graphsage",
-        "dataset": "elliptic",
-        "normalize": False,
-        "undirected": True,
-        "epochs": 100,
-        "lr": 0.005,
-        "weight_decay": 5e-4,
-        "hidden_channels": 128,
-        "dropout": 0.5,
-        "heads": 4,
-        "class_weight_strength": 1.0,
-        "threshold_tuning": False,
-    },
-    {
-        "experiment_name": "gatv2_res_raw_undirected",
-        "model": "gatv2_res",
-        "dataset": "elliptic",
-        "normalize": False,
-        "undirected": True,
-        "epochs": 250,
-        "lr": 0.0005,
-        "weight_decay": 5e-4,
-        "hidden_channels": 64,
-        "dropout": 0.2,
-        "heads": 2,
-        "class_weight_strength": 0.25,
-        "threshold_tuning": False,
-    },
-    {
-        "experiment_name": "gatv2_res_raw_undirected_cw05",
-        "model": "gatv2_res",
-        "dataset": "elliptic",
-        "normalize": False,
-        "undirected": True,
-        "epochs": 250,
-        "lr": 0.0005,
-        "weight_decay": 5e-4,
-        "hidden_channels": 64,
-        "dropout": 0.2,
-        "heads": 2,
-        "class_weight_strength": 0.5,
         "threshold_tuning": False,
     },
 ]
+
+
+def validate_experiment(experiment: dict) -> None:
+    model_name = experiment["model"].lower()
+    undirected = experiment.get("undirected", False)
+    direction_aware = experiment.get("direction_aware", False)
+
+    if undirected and direction_aware:
+        raise ValueError(
+            f"{experiment['experiment_name']} is invalid: "
+            "use either undirected=True or direction_aware=True, not both."
+        )
+
+    if model_name == "gatv2_dir" and not direction_aware:
+        raise ValueError(
+            f"{experiment['experiment_name']} is invalid: "
+            "gatv2_dir requires direction_aware=True."
+        )
 
 
 def main():
@@ -161,15 +93,23 @@ def main():
     data_root = PROJECT_ROOT / "data"
 
     for experiment in EXPERIMENTS:
+        validate_experiment(experiment)
+
         experiment_name = experiment["experiment_name"]
         dataset_name = experiment["dataset"]
         model_name = experiment["model"]
 
+        normalize = experiment["normalize"]
+        undirected = experiment.get("undirected", False)
+        direction_aware = experiment.get("direction_aware", False)
+
         print("\n" + "=" * 80)
         print(f"Experiment: {experiment_name}")
-        print(f"Dataset: {dataset_name} | Model: {model_name}")
-        print(f"Normalize: {experiment['normalize']}")
-        print(f"Undirected: {experiment['undirected']}")
+        print(f"Dataset: {dataset_name}")
+        print(f"Model: {model_name}")
+        print(f"Normalize: {normalize}")
+        print(f"Undirected: {undirected}")
+        print(f"Direction-aware: {direction_aware}")
         print("=" * 80)
 
         for seed in SEEDS:
@@ -179,11 +119,12 @@ def main():
 
             set_seed(seed)
 
-            data, summary_fn = load_dataset(
+            data, _ = load_dataset(
                 dataset_name,
                 data_root,
-                normalize=experiment["normalize"],
-                make_undirected=experiment["undirected"],
+                normalize=normalize,
+                make_undirected=undirected,
+                direction_aware=direction_aware,
             )
 
             model = build_model(
@@ -231,8 +172,9 @@ def main():
                 "dataset": dataset_name,
                 "model": model_name,
                 "seed": seed,
-                "normalize": experiment["normalize"],
-                "undirected": experiment["undirected"],
+                "normalize": normalize,
+                "undirected": undirected,
+                "direction_aware": direction_aware,
                 "best_epoch": result["best_epoch"],
                 "best_val_f1": result["best_val_f1"],
                 "threshold": metrics["threshold"],
@@ -257,8 +199,9 @@ def main():
             print("\nSeed result:")
             print(f"experiment_name: {experiment_name}")
             print(f"model: {model_name}")
-            print(f"normalize: {experiment['normalize']}")
-            print(f"undirected: {experiment['undirected']}")
+            print(f"normalize: {normalize}")
+            print(f"undirected: {undirected}")
+            print(f"direction_aware: {direction_aware}")
 
             for key in [
                 "accuracy",

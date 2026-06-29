@@ -8,6 +8,7 @@ def load_dataset(
     data_root: str | Path,
     normalize: bool = True,
     make_undirected: bool = False,
+    direction_aware: bool = False,
 ):
     data_root = Path(data_root)
 
@@ -16,6 +17,7 @@ def load_dataset(
             data_root / "elliptic",
             normalize=normalize,
             make_undirected=make_undirected,
+            direction_aware=direction_aware,
         )
         return data, print_elliptic_summary
 

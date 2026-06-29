@@ -11,12 +11,28 @@ from sklearn.metrics import (
 @torch.no_grad()
 def get_probs_labels(model, data, mask, device):
     model.eval()
+    logits = model_forward(model, data, device)
 
-    logits = model(data.x.to(device), data.edge_index.to(device))
     probs = torch.softmax(logits[mask], dim=1)[:, 1].detach().cpu().numpy()
     labels = data.y[mask].detach().cpu().numpy()
 
     return probs, labels
+
+
+def model_forward(model, data, device):
+    x = data.x.to(device)
+    edge_index = data.edge_index.to(device)
+
+    if getattr(model, "uses_edge_attr", False):
+        if not hasattr(data, "edge_attr") or data.edge_attr is None:
+            raise ValueError(
+                "This model requires edge_attr, but data.edge_attr was not found."
+            )
+
+        edge_attr = data.edge_attr.to(device)
+        return model(x, edge_index, edge_attr)
+
+    return model(x, edge_index)
 
 
 def compute_metrics_from_probs(probs, labels, threshold=0.5):

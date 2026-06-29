@@ -12,6 +12,7 @@ from utils.metrics import (
     get_probs_labels,
     find_best_threshold,
     compute_metrics_from_probs,
+    model_forward,
 )
 
 
@@ -76,7 +77,7 @@ def train_model(
         model.train()
         optimizer.zero_grad()
 
-        logits = model(data.x, data.edge_index)
+        logits = model_forward(model, data, device)
 
         loss = F.cross_entropy(
             logits[data.train_mask],

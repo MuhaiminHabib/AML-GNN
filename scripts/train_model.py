@@ -30,11 +30,18 @@ def parse_args():
     parser.add_argument("--class_weight_strength", type=float, default=1.0)
     parser.add_argument("--no_normalize", action="store_true", help="Disable train-time feature normalization.")
     parser.add_argument("--undirected", action="store_true", help="Convert the graph to bidirectional/undirected message passing.")
+    parser.add_argument("--direction_aware", action="store_true", help="Use bidirectional edges with edge direction attributes.",)
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    if args.direction_aware and args.undirected:
+        raise ValueError("Use --direction_aware or --undirected, not both.")
+
+    if args.model.lower() == "gatv2_dir" and not args.direction_aware:
+        raise ValueError("gatv2_dir requires --direction_aware.")
 
     config = TrainConfig(
         seed=args.seed,
@@ -59,6 +66,7 @@ def main():
         data_root,
         normalize=not args.no_normalize,
         make_undirected=args.undirected,
+        direction_aware=args.direction_aware,
     )
     summary_fn(data)
 
@@ -95,6 +103,7 @@ def main():
     print(f"normalize: {not args.no_normalize}")
     print(f"threshold_tuning: {not args.no_threshold_tuning}")
     print(f"undirected: {args.undirected}")
+    print(f"direction_aware: {args.direction_aware}")
 
     for key, value in result["test_metrics"].items():
         print(f"{key}: {value:.4f}")
@@ -115,6 +124,7 @@ def main():
     result["normalize"] = not args.no_normalize
     result["threshold_tuning"] = not args.no_threshold_tuning
     result["undirected"] = args.undirected
+    result["direction_aware"] = args.direction_aware
     result["hyperparameters"] = {
         "epochs": args.epochs,
         "lr": args.lr,

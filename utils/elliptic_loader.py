@@ -30,8 +30,14 @@ def load_elliptic(
     data_dir: str | Path,
     normalize: bool = True,
     make_undirected: bool = False,
+    direction_aware: bool = False,
 ) -> Data:
     data_dir = Path(data_dir)
+
+    if make_undirected and direction_aware:
+        raise ValueError(
+            "Use either make_undirected=True or direction_aware=True, not both."
+        )
 
     features_path = data_dir / "elliptic_txs_features.csv"
     classes_path = data_dir / "elliptic_txs_classes.csv"
@@ -82,7 +88,27 @@ def load_elliptic(
     dst = dst[valid_edges].astype(np.int64).to_numpy()
 
     edge_index = torch.from_numpy(np.vstack([src, dst])).long()
-    if make_undirected:
+    edge_attr = None
+
+    if direction_aware:
+        reverse_edge_index = edge_index[[1, 0], :]
+
+        num_original_edges = edge_index.size(1)
+
+        forward_attr = torch.tensor(
+            [[1.0, 0.0]],
+            dtype=torch.float,
+        ).repeat(num_original_edges, 1)
+
+        reverse_attr = torch.tensor(
+            [[0.0, 1.0]],
+            dtype=torch.float,
+        ).repeat(num_original_edges, 1)
+
+        edge_index = torch.cat([edge_index, reverse_edge_index], dim=1)
+        edge_attr = torch.cat([forward_attr, reverse_attr], dim=0)
+
+    elif make_undirected:
         edge_index = to_undirected(edge_index)
 
     data = Data(
@@ -91,6 +117,9 @@ def load_elliptic(
         y=y,
         time_step=time_step,
     )
+
+    if edge_attr is not None:
+        data.edge_attr = edge_attr
 
     labelled_mask = y != -1
 
@@ -104,6 +133,10 @@ def load_elliptic(
 def print_elliptic_summary(data: Data) -> None:
     print("Total nodes:", data.num_nodes)
     print("Total edges:", data.num_edges)
+
+    if hasattr(data, "edge_attr") and data.edge_attr is not None:
+        print("Edge attributes:", tuple(data.edge_attr.shape))
+
     print("Node features:", data.num_node_features)
 
     print("Minimum time step:", int(data.time_step.min()))

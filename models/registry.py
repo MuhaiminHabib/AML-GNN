@@ -2,6 +2,7 @@ from models.gcn import GCN
 from models.graphsage import GraphSAGE
 from models.gatv2 import GATv2
 from models.gatv2_res import ResidualGATv2
+from models.gatv2_direction import DirectionAwareGATv2
 
 
 
@@ -41,6 +42,14 @@ def build_model(
         )
     if model_name == "gatv2_res":
         return ResidualGATv2(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            heads=heads,
+            dropout=dropout,
+        )
+    if model_name == "gatv2_dir":
+        return DirectionAwareGATv2(
             in_channels=in_channels,
             hidden_channels=hidden_channels,
             out_channels=out_channels,
