@@ -5,10 +5,10 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-EXPERIMENTS = [
-    "graphsage_raw_undirected",
-    "gatv2_dir_heads8_hidden32_cw035",
+FINAL_EXPERIMENTS = [
     "gcn_norm_undirected",
+    "graphsage_raw_undirected_cw05",
+    "gatv2_dir_heads8_hidden32_cw035",
 ]
 
 SEED = 42
@@ -35,9 +35,16 @@ def summarise_experiment(explainer_name, experiment_name, seed):
     )
 
     if not input_path.exists():
-        raise FileNotFoundError(f"Faithfulness file not found: {input_path}")
+        raise FileNotFoundError(
+            f"\nFaithfulness file not found:\n{input_path}\n\n"
+            "This means this explainer/model combination has not been evaluated yet.\n"
+            "Run evaluate_gnnexplainer_faithfulness.py first for this experiment."
+        )
 
     rows = read_csv(input_path)
+
+    if len(rows) == 0:
+        raise ValueError(f"Faithfulness file is empty: {input_path}")
 
     summary = {
         "explainer": explainer_name,
@@ -65,25 +72,34 @@ def summarise_experiment(explainer_name, experiment_name, seed):
 
 def main():
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
         "--explainer",
         type=str,
         required=True,
-        choices=["gnnexplainer", "pgexplainer", "subgraphx", "subgraphx_mcts"],
+        choices=[
+            "gnnexplainer",
+            "pgexplainer",
+            "subgraphx",
+            "subgraphx_mcts",
+        ],
     )
-    parser.add_argument("--seed", type=int, default=42)
+
+    parser.add_argument("--seed", type=int, default=SEED)
 
     args = parser.parse_args()
 
     summaries = []
 
-    for experiment_name in EXPERIMENTS:
+    for experiment_name in FINAL_EXPERIMENTS:
         print(f"Summarising: {args.explainer} | {experiment_name}")
+
         summary = summarise_experiment(
             explainer_name=args.explainer,
             experiment_name=experiment_name,
             seed=args.seed,
         )
+
         summaries.append(summary)
 
     output_dir = PROJECT_ROOT / "outputs" / "faithfulness" / "summary"
@@ -99,6 +115,7 @@ def main():
         writer.writerows(summaries)
 
     print("\nFaithfulness summary:")
+
     for row in summaries:
         print(
             f"{row['explainer']} | "

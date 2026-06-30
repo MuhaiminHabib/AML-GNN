@@ -17,7 +17,17 @@ from models.registry import build_model
 
 
 FINAL_EXPERIMENTS = {
-    "graphsage_raw_undirected": {
+    "gcn_norm_undirected": {
+        "model": "gcn",
+        "dataset": "elliptic",
+        "normalize": True,
+        "undirected": True,
+        "direction_aware": False,
+        "hidden_channels": 128,
+        "dropout": 0.5,
+        "heads": 4,
+    },
+    "graphsage_raw_undirected_cw05": {
         "model": "graphsage",
         "dataset": "elliptic",
         "normalize": False,
@@ -37,17 +47,15 @@ FINAL_EXPERIMENTS = {
         "dropout": 0.2,
         "heads": 8,
     },
-    "gcn_norm_undirected": {
-        "model": "gcn",
-        "dataset": "elliptic",
-        "normalize": True,
-        "undirected": True,
-        "direction_aware": False,
-        "hidden_channels": 128,
-        "dropout": 0.5,
-        "heads": 4,
-    },
 }
+
+
+EXPLAINER_CHOICES = [
+    "gnnexplainer",
+    "pgexplainer",
+    "subgraphx",
+    "subgraphx_mcts",
+]
 
 
 class ExplainModelWrapper(nn.Module):
@@ -84,11 +92,6 @@ def predict_target(wrapper, x, edge_index, edge_attr, target_idx):
 
 
 def build_top_edge_mask(subset, sub_edge_index, top_edges):
-    """
-    Creates a boolean mask over subgraph edges.
-    True = edge is selected by the explainer.
-    """
-
     selected_pairs = set()
 
     for edge in top_edges:
@@ -228,14 +231,16 @@ def main():
         required=True,
         choices=list(FINAL_EXPERIMENTS.keys()),
     )
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--num_hops", type=int, default=2)
+
     parser.add_argument(
         "--explainer",
         type=str,
         default="gnnexplainer",
-        choices=["gnnexplainer", "pgexplainer", "subgraphx", "subgraphx_mcts"],
+        choices=EXPLAINER_CHOICES,
     )
+
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--num_hops", type=int, default=2)
 
     args = parser.parse_args()
 

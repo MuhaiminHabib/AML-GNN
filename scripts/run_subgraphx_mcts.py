@@ -18,7 +18,17 @@ from models.registry import build_model
 
 
 FINAL_EXPERIMENTS = {
-    "graphsage_raw_undirected": {
+    "gcn_norm_undirected": {
+        "model": "gcn",
+        "dataset": "elliptic",
+        "normalize": True,
+        "undirected": True,
+        "direction_aware": False,
+        "hidden_channels": 128,
+        "dropout": 0.5,
+        "heads": 4,
+    },
+    "graphsage_raw_undirected_cw05": {
         "model": "graphsage",
         "dataset": "elliptic",
         "normalize": False,
@@ -37,16 +47,6 @@ FINAL_EXPERIMENTS = {
         "hidden_channels": 32,
         "dropout": 0.2,
         "heads": 8,
-    },
-    "gcn_norm_undirected": {
-        "model": "gcn",
-        "dataset": "elliptic",
-        "normalize": True,
-        "undirected": True,
-        "direction_aware": False,
-        "hidden_channels": 128,
-        "dropout": 0.5,
-        "heads": 4,
     },
 }
 

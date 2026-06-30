@@ -46,6 +46,16 @@ FINAL_EXPERIMENTS = {
         "dropout": 0.5,
         "heads": 4,
     },
+    "graphsage_raw_undirected_cw05": {
+        "model": "graphsage",
+        "dataset": "elliptic",
+        "normalize": False,
+        "undirected": True,
+        "direction_aware": False,
+        "hidden_channels": 128,
+        "dropout": 0.5,
+        "heads": 4,
+    },
 }
 
 
