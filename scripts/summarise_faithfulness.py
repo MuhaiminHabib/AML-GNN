@@ -69,7 +69,7 @@ def main():
         "--explainer",
         type=str,
         required=True,
-        choices=["gnnexplainer", "pgexplainer", "subgraphx"],
+        choices=["gnnexplainer", "pgexplainer", "subgraphx", "subgraphx_mcts"],
     )
     parser.add_argument("--seed", type=int, default=42)
 

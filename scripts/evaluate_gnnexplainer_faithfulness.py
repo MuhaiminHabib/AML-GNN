@@ -234,7 +234,7 @@ def main():
         "--explainer",
         type=str,
         default="gnnexplainer",
-        choices=["gnnexplainer", "pgexplainer", "subgraphx"],
+        choices=["gnnexplainer", "pgexplainer", "subgraphx", "subgraphx_mcts"],
     )
 
     args = parser.parse_args()
